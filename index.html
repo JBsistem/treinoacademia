@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GymFit - Controle de Treino</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                            accent: '#10b981', // Verde esmeralda para sucesso/conclusão
+                        },
+                        darkbg: {
+                            base: '#0f172a',
+                            card: '#1e293b',
+                            border: '#334155',
+                            hover: '#334155'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* CSS adicional para animações e ajustes sutis */
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .timer-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-24 md:pb-12 flex flex-col antialiased">
+
+    <!-- Header Principal -->
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <i class="fa-solid fa-dumbbell text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">FitTrack Pro</h1>
+                    <p class="text-xs text-slate-400">Foco & Progressão</p>
+                </div>
+            </div>
+
+            <!-- Botões de Ação Topo -->
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleInstructionsModal()" class="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition" title="Instruções e Dicas">
+                    <i class="fa-solid fa-circle-info text-lg"></i>
+                </button>
+                <button onclick="toggleHistoryModal()" class="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition" title="Histórico">
+                    <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Seletor de Treinos (Tabs) -->
+        <div class="max-w-4xl mx-auto px-4 pt-1 pb-3 flex space-x-2">
+            <button onclick="switchTab('A')" id="tab-btn-A" class="tab-btn flex-1 py-2.5 px-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center space-x-2 border bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/30">
+                <span>Treino A</span>
+                <span class="text-xs px-1.5 py-0.5 rounded-full bg-black/20 text-blue-100 hidden sm:inline">Peito/Ombro/Tríceps</span>
+            </button>
+            <button onclick="switchTab('B')" id="tab-btn-B" class="tab-btn flex-1 py-2.5 px-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center space-x-2 border bg-slate-800/80 text-slate-400 border-slate-700 hover:bg-slate-700">
+                <span>Treino B</span>
+                <span class="text-xs px-1.5 py-0.5 rounded-full bg-black/20 text-slate-300 hidden sm:inline">Costas/Bíceps/Abd</span>
+            </button>
+            <button onclick="switchTab('C')" id="tab-btn-C" class="tab-btn flex-1 py-2.5 px-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center space-x-2 border bg-slate-800/80 text-slate-400 border-slate-700 hover:bg-slate-700">
+                <span>Treino C</span>
+                <span class="text-xs px-1.5 py-0.5 rounded-full bg-black/20 text-slate-300 hidden sm:inline">Pernas</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-4xl mx-auto px-4 py-6 flex-1 w-full">
+
+        <!-- Banner Informativo Curto -->
+        <div class="mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-blue-500/10 text-blue-400 rounded-xl">
+                    <i class="fa-solid fa-lightbulb text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-200" id="workout-title">Treino A: Peito, Ombros e Tríceps</h2>
+                    <p class="text-xs text-slate-400">3 séries × 12 reps • Descanso: 90s</p>
+                </div>
+            </div>
+            <button onclick="finishWorkout()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-medium text-xs rounded-xl shadow-md transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-check"></i>
+                <span class="hidden sm:inline">Concluir Treino</span>
+            </button>
+        </div>
+
+        <!-- Lista de Exercícios (Injetada via JS) -->
+        <div id="exercise-list" class="space-y-4">
+            <!-- Os cards de exercícios serão gerados aqui dinamicamente -->
+        </div>
+    </main>
+
+    <!-- Widget Fixo do Temporizador de Descanso (Barra inferior ou flutuante) -->
+    <div id="timer-widget" class="fixed bottom-4 left-4 right-4 max-w-md mx-auto bg-slate-900/95 backdrop-blur-lg border border-slate-700/80 shadow-2xl rounded-2xl p-4 transition-all duration-300 z-50 transform translate-y-0">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <!-- Círculo de Progresso do Timer -->
+                <div class="relative w-12 h-12 flex items-center justify-center">
+                    <svg class="w-12 h-12">
+                        <circle class="text-slate-800" stroke-width="4" stroke="currentColor" fill="transparent" r="20" cx="24" cy="24"/>
+                        <circle id="timer-progress" class="text-blue-500 timer-ring-circle" stroke-width="4" stroke-dasharray="125.6" stroke-dashoffset="0" stroke-linecap="round" stroke="currentColor" fill="transparent" r="20" cx="24" cy="24"/>
+                    </svg>
+                    <i id="timer-icon" class="fa-solid fa-stopwatch absolute text-blue-400 text-sm"></i>
+                </div>
+                <div>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Descanso</span>
+                    <div id="timer-display" class="text-xl font-bold font-mono text-white leading-tight">01:30</div>
+                </div>
+            </div>
+
+            <!-- Controles do Timer -->
+            <div class="flex items-center space-x-2">
+                <button onclick="addTimerTime(15)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg border border-slate-700 active:scale-95 transition" title="+15s">
+                    +15s
+                </button>
+                <button id="timer-toggle-btn" onclick="toggleTimer()" class="w-10 h-10 bg-blue-600 hover:bg-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 active:scale-95 transition">
+                    <i id="timer-toggle-icon" class="fa-solid fa-play"></i>
+                </button>
+                <button onclick="resetTimer()" class="w-10 h-10 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl flex items-center justify-center border border-slate-700 active:scale-95 transition" title="Reiniciar">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Instruções Gerais & Dicas -->
+    <div id="instructions-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="toggleInstructionsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="p-3 bg-blue-500/10 text-blue-400 rounded-xl">
+                    <i class="fa-solid fa-clipboard-list text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Instruções do Treino</h3>
+            </div>
+            
+            <div class="space-y-4 text-sm text-slate-300">
+                <div class="p-3.5 bg-slate-800/60 rounded-xl border border-slate-700/50">
+                    <h4 class="font-semibold text-blue-400 mb-1 flex items-center">
+                        <i class="fa-solid fa-layer-group mr-2"></i> Regra de Séries & Repetições
+                    </h4>
+                    <p>Faça exatamente <strong class="text-white">3 séries</strong> de cada exercício, buscando realizar <strong class="text-white">12 repetições controladas</strong>.</p>
+                </div>
+
+                <div class="p-3.5 bg-slate-800/60 rounded-xl border border-slate-700/50">
+                    <h4 class="font-semibold text-emerald-400 mb-1 flex items-center">
+                        <i class="fa-solid fa-weight-hanging mr-2"></i> Ajuste de Cargas
+                    </h4>
+                    <p>Use uma carga leve a moderada. Se sentir que conseguiria fazer <strong class="text-white">15 a 20 repetições facilmente</strong>, aumente o peso bem aos poucos no próximo treino.</p>
+                </div>
+
+                <div class="p-3.5 bg-slate-800/60 rounded-xl border border-slate-700/50">
+                    <h4 class="font-semibold text-amber-400 mb-1 flex items-center">
+                        <i class="fa-solid fa-hourglass-half mr-2"></i> Tempo de Descanso
+                    </h4>
+                    <p>Descanse exatamente <strong class="text-white">90 segundos</strong> entre cada série. O temporizador inferior é ativado automaticamente ao marcar uma série como concluída.</p>
+                </div>
+            </div>
+
+            <button onclick="toggleInstructionsModal()" class="w-full mt-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition">
+                Entendido!
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: Histórico de Treinos -->
+    <div id="history-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+            <button onclick="toggleHistoryModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl">
+                    <i class="fa-solid fa-calendar-check text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Histórico de Treinos</h3>
+                    <p class="text-xs text-slate-400">Sessões concluídas</p>
+                </div>
+            </div>
+
+            <div id="history-list" class="space-y-3 overflow-y-auto flex-1 pr-1 my-2">
+                <!-- Registros de histórico -->
+            </div>
+
+            <div class="pt-4 border-t border-slate-800 flex justify-between items-center">
+                <button onclick="clearHistory()" class="text-xs text-red-400 hover:text-red-300 font-medium">
+                    <i class="fa-solid fa-trash mr-1"></i> Limpar Histórico
+                </button>
+                <button onclick="toggleHistoryModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificação Flutuante Toast -->
+    <div id="toast" class="fixed top-5 right-5 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-3 pointer-events-none">
+        <i class="fa-solid fa-circle-check text-xl"></i>
+        <span id="toast-message" class="text-sm font-medium">Treino finalizado com sucesso!</span>
+    </div>
+
+    <script>
+        // --- ESTRUTURA DE DADOS DOS TREINOS ---
+        const workoutsData = {
+            'A': {
+                title: 'Treino A: Peito, Ombros e Tríceps',
+                description: 'Foco em membros superiores empurrar',
+                exercises: [
+                    { id: 'a1', name: 'Supino Vertical na Máquina', tip: 'Mais seguro para o ombro no início', sets: 3, reps: '12' },
+                    { id: 'a2', name: 'Pec Deck / Voador', tip: 'Mantenha a postura e cotovelos alinhados', sets: 3, reps: '12' },
+                    { id: 'a3', name: 'Desenvolvimento na Máquina', tip: 'Ou halteres leves, sem forçar o pescoço', sets: 3, reps: '12' },
+                    { id: 'a4', name: 'Tríceps no Pulley (Barra reta)', tip: 'Mantenha os cotovelos fixos ao corpo', sets: 3, reps: '12' }
+                ]
+            },
+            'B': {
+                title: 'Treino B: Costas, Bíceps e Abdômen',
+                description: 'Foco em membros superiores puxar e core',
+                exercises: [
+                    { id: 'b1', name: 'Puxada Aberta no Pulley', tip: 'Puxe em direção ao peito, contraindo as costas', sets: 3, reps: '12' },
+                    { id: 'b2', name: 'Remada Baixa Sentada (com triângulo)', tip: 'Mantenha a coluna reta ao puxar', sets: 3, reps: '12' },
+                    { id: 'b3', name: 'Rosca na Polia Baixa', tip: 'Tensão constante, mais estável que halteres', sets: 3, reps: '12' },
+                    { id: 'b4', name: 'Abdominal Supra no colchonete', tip: 'Movimento curto e concentrado no abdômen', sets: 3, reps: '12 - 15' }
+                ]
+            },
+            'C': {
+                title: 'Treino C: Pernas Completas',
+                description: 'Foco total em membros inferiores',
+                exercises: [
+                    { id: 'c1', name: 'Agachamento', tip: 'Pés na largura dos ombros, joelhos alinhados', sets: 3, reps: '12' },
+                    { id: 'c2', name: 'Cadeira Extensora', tip: 'Ajuste o encosto para apoiar bem a lombar', sets: 3, reps: '12' },
+                    { id: 'c3', name: 'Mesa Flexora ou Cadeira Flexora', tip: 'Movimento cadenciado sem dar trancos', sets: 3, reps: '12' },
+                    { id: 'c4', name: 'Panturrilha Sentado (na máquina)', tip: 'Amplitude máxima de movimento', sets: 3, reps: '15' }
+                ]
+            }
+        };
+
+        // --- ESTADO DA APLICAÇÃO ---
+        let currentTab = 'A';
+        let userProgress = JSON.parse(localStorage.getItem('gym_fit_progress')) || {};
+        let workoutHistory = JSON.parse(localStorage.getItem('gym_fit_history')) || [];
+
+        // Temporizador
+        const DEFAULT_TIME = 90; // 90 segundos
+        let timerTimeLeft = DEFAULT_TIME;
+        let timerInterval = null;
+        let isTimerRunning = false;
+        const FULL_DASH_ARRAY = 125.6;
+
+        // --- INICIALIZAÇÃO ---
+        window.onload = function() {
+            renderWorkout(currentTab);
+            updateTimerDisplay();
+        };
+
+        // --- RENDERIZAÇÃO DO TREINO ---
+        function switchTab(tabKey) {
+            currentTab = tabKey;
+            
+            // Atualizar botões das tabs
+            ['A', 'B', 'C'].forEach(key => {
+                const btn = document.getElementById(`tab-btn-${key}`);
+                if (key === tabKey) {
+                    btn.className = "tab-btn flex-1 py-2.5 px-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center space-x-2 border bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/30";
+                } else {
+                    btn.className = "tab-btn flex-1 py-2.5 px-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center space-x-2 border bg-slate-800/80 text-slate-400 border-slate-700 hover:bg-slate-700";
+                }
+            });
+
+            // Atualizar cabeçalho do treino
+            document.getElementById('workout-title').innerText = workoutsData[tabKey].title;
+
+            renderWorkout(tabKey);
+        }
+
+        function renderWorkout(tabKey) {
+            const container = document.getElementById('exercise-list');
+            container.innerHTML = '';
+            const workout = workoutsData[tabKey];
+
+            workout.exercises.forEach((ex) => {
+                const exData = userProgress[ex.id] || { weight: '', completedSets: [false, false, false] };
+
+                const card = document.createElement('div');
+                card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg transition duration-200 hover:border-slate-700/80";
+
+                let setsHTML = '';
+                for (let i = 0; i < ex.sets; i++) {
+                    const isChecked = exData.completedSets[i] || false;
+                    setsHTML += `
+                        <button onclick="toggleSet('${ex.id}', ${i})" 
+                                class="flex-1 py-2 px-3 rounded-xl border flex items-center justify-center space-x-2 transition-all duration-200 ${
+                                    isChecked 
+                                    ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400 font-semibold' 
+                                    : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:bg-slate-800'
+                                }">
+                            <i class="fa-${isChecked ? 'solid fa-circle-check text-emerald-400' : 'regular fa-circle text-slate-500'} text-sm"></i>
+                            <span class="text-xs">Série ${i + 1}</span>
+                        </button>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h3 class="font-bold text-white text-base sm:text-lg flex items-center gap-2">
+                                ${ex.name}
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-circle-info mr-1 text-blue-400"></i>${ex.tip}</p>
+                        </div>
+                        
+                        <!-- Input de Peso/Carga -->
+                        <div class="flex items-center space-x-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700/70 self-start sm:self-auto">
+                            <i class="fa-solid fa-weight-hanging text-slate-400 text-xs ml-2"></i>
+                            <input type="number" 
+                                   id="weight-${ex.id}" 
+                                   value="${exData.weight || ''}" 
+                                   placeholder="0" 
+                                   onchange="updateWeight('${ex.id}', this.value)"
+                                   class="w-16 bg-slate-900 text-white font-bold text-center text-sm rounded-lg py-1 px-2 border border-slate-700 focus:outline-none focus:border-blue-500">
+                            <span class="text-xs font-semibold text-slate-400 pr-2">kg</span>
+                        </div>
+                    </div>
+
+                    <!-- Meta de Repetições -->
+                    <div class="flex items-center justify-between text-xs text-slate-400 mb-3 bg-slate-950/40 px-3 py-1.5 rounded-lg border border-slate-800/50">
+                        <span>Meta: <strong class="text-slate-200">${ex.sets} séries × ${ex.reps} reps</strong></span>
+                        <span class="text-blue-400">Descanso: 90s</span>
+                    </div>
+
+                    <!-- Botões de Séries (Checkboxes) -->
+                    <div class="flex space-x-2">
+                        ${setsHTML}
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // --- MANIPULAÇÃO DO STATE & LOCALSTORAGE ---
+        function updateWeight(exId, value) {
+            if (!userProgress[exId]) {
+                userProgress[exId] = { weight: '', completedSets: [false, false, false] };
+            }
+            userProgress[exId].weight = value;
+            saveProgress();
+            showToast('Carga atualizada!');
+        }
+
+        function toggleSet(exId, setIndex) {
+            if (!userProgress[exId]) {
+                userProgress[exId] = { weight: '', completedSets: [false, false, false] };
+            }
+
+            const currentState = userProgress[exId].completedSets[setIndex];
+            userProgress[exId].completedSets[setIndex] = !currentState;
+            saveProgress();
+            renderWorkout(currentTab);
+
+            // Disparar timer de descanso se a série foi marcada como concluída
+            if (!currentState) {
+                startTimer(90);
+                showToast('Série concluída! Descanso iniciado.');
+            }
+        }
+
+        function saveProgress() {
+            localStorage.setItem('gym_fit_progress', JSON.stringify(userProgress));
+        }
+
+        // --- LÓGICA DO TEMPORIZADOR DE DESCANSO ---
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timerTimeLeft / 60);
+            const seconds = timerTimeLeft % 60;
+            document.getElementById('timer-display').innerText = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            // Atualizar círculo de progresso
+            const circle = document.getElementById('timer-progress');
+            const fraction = timerTimeLeft / DEFAULT_TIME;
+            const dashoffset = FULL_DASH_ARRAY * (1 - fraction);
+            circle.style.strokeDashoffset = dashoffset;
+        }
+
+        function startTimer(seconds = DEFAULT_TIME) {
+            clearInterval(timerInterval);
+            timerTimeLeft = seconds;
+            isTimerRunning = true;
+            updateTimerDisplay();
+            updateTimerButtonUI();
+
+            timerInterval = setInterval(() => {
+                if (timerTimeLeft > 0) {
+                    timerTimeLeft--;
+                    updateTimerDisplay();
+                } else {
+                    clearInterval(timerInterval);
+                    isTimerRunning = false;
+                    updateTimerButtonUI();
+                    playTimerAlarm();
+                    showToast('Tempo de descanso finalizado!');
+                }
+            }, 1000);
+        }
+
+        function toggleTimer() {
+            if (isTimerRunning) {
+                clearInterval(timerInterval);
+                isTimerRunning = false;
+            } else {
+                if (timerTimeLeft <= 0) timerTimeLeft = DEFAULT_TIME;
+                startTimer(timerTimeLeft);
+            }
+            updateTimerButtonUI();
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            timerTimeLeft = DEFAULT_TIME;
+            updateTimerDisplay();
+            updateTimerButtonUI();
+        }
+
+        function addTimerTime(sec) {
+            timerTimeLeft += sec;
+            updateTimerDisplay();
+        }
+
+        function updateTimerButtonUI() {
+            const icon = document.getElementById('timer-toggle-icon');
+            if (isTimerRunning) {
+                icon.className = "fa-solid fa-pause";
+            } else {
+                icon.className = "fa-solid fa-play";
+            }
+        }
+
+        // Alarme Sonoro utilizando Web Audio API (sem arquivos externos)
+        function playTimerAlarm() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Três bips rápidos
+                [0, 0.2, 0.4].forEach(delay => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime + delay); // Nota A5
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime + delay);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.15);
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    osc.start(ctx.currentTime + delay);
+                    osc.stop(ctx.currentTime + delay + 0.15);
+                });
+            } catch(e) {
+                console.log('Audio Context não suportado ou bloqueado.');
+            }
+        }
+
+        // --- FINALIZAR TREINO ---
+        function finishWorkout() {
+            const workout = workoutsData[currentTab];
+            const dateStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+            // Coletar resumo das cargas
+            const summary = workout.exercises.map(ex => {
+                const data = userProgress[ex.id] || { weight: 0 };
+                return `${ex.name}: ${data.weight || 0}kg`;
+            });
+
+            workoutHistory.unshift({
+                id: Date.now(),
+                title: workout.title,
+                date: dateStr,
+                summary: summary
+            });
+
+            localStorage.setItem('gym_fit_history', JSON.stringify(workoutHistory));
+
+            // Resetar checkboxes do treino atual
+            workout.exercises.forEach(ex => {
+                if (userProgress[ex.id]) {
+                    userProgress[ex.id].completedSets = [false, false, false];
+                }
+            });
+            saveProgress();
+            renderWorkout(currentTab);
+
+            showToast('Parabéns! Treino concluído e salvo no histórico.');
+        }
+
+        // --- MODAIS & TOAST ---
+        function toggleInstructionsModal() {
+            const modal = document.getElementById('instructions-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        function toggleHistoryModal() {
+            const modal = document.getElementById('history-modal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                renderHistory();
+            }
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-list');
+            if (workoutHistory.length === 0) {
+                container.innerHTML = `<p class="text-slate-500 text-xs text-center py-8">Nenhum treino concluído ainda.</p>`;
+                return;
+            }
+
+            container.innerHTML = workoutHistory.map(item => `
+                <div class="bg-slate-800/50 border border-slate-700/60 p-3 rounded-xl">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <span class="font-bold text-white text-xs">${item.title}</span>
+                        <span class="text-[10px] text-slate-400">${item.date}</span>
+                    </div>
+                    <ul class="text-[11px] text-slate-300 space-y-0.5 list-disc list-inside">
+                        ${item.summary.map(s => `<li>${s}</li>`).join('')}
+                    </ul>
+                </div>
+            `).join('');
+        }
+
+        function clearHistory() {
+            if (confirm("Deseja realmente apagar o histórico de treinos?")) {
+                workoutHistory = [];
+                localStorage.removeItem('gym_fit_history');
+                renderHistory();
+                showToast('Histórico apagado.');
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = msg;
+            toast.classList.remove('translate-y-[-100px]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-100px]', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
